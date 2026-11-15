@@ -15,80 +15,87 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), ui(std::make_unique<Ui::MainWindow>()) {
     ui->setupUi(this);
 
-    // Modern Dark Theme Stylesheet
+    // Clean, minimalist neutral styling (non-distracting)
     setStyleSheet(R"(
-        QMainWindow { background-color: #1e1e24; }
-        QWidget { color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; }
+        * { color: #dcdcdc; font-size: 12px; }
+        QMainWindow, QWidget#centralWidget { background-color: #2b2b2b; }
+        QWidget#sidebar { background-color: #262626; border-right: 1px solid #404040; }
         QGroupBox { 
-            font-weight: bold; 
-            border: 1px solid #3d3d4a; 
-            border-radius: 6px; 
+            font-weight: 600; 
+            border: 1px solid #505050; 
+            border-radius: 4px; 
             margin-top: 10px; 
-            padding-top: 14px; 
-            background-color: #26262e;
+            padding-top: 12px; 
+            background-color: #303030;
         }
         QGroupBox::title { 
             subcontrol-origin: margin; 
             subcontrol-position: top left; 
-            padding: 0 5px; 
-            color: #4da6ff; 
+            left: 8px;
+            padding: 0 4px; 
+            color: #eeeeee; 
         }
         QPushButton { 
-            background-color: #3b3b48; 
-            border: 1px solid #525263; 
-            border-radius: 4px; 
-            padding: 6px 12px; 
-            font-weight: 500;
+            background-color: #3c3c3c; 
+            border: 1px solid #606060; 
+            border-radius: 3px; 
+            padding: 5px 12px; 
+            font-weight: 600;
         }
-        QPushButton:hover { background-color: #4b4b5a; border-color: #4da6ff; }
-        QPushButton:pressed { background-color: #2e2e38; }
+        QPushButton:hover { background-color: #484848; border-color: #808080; }
+        QPushButton:pressed { background-color: #2a2a2a; }
         QPushButton#btnRun { 
-            background-color: #007acc; 
-            border: 1px solid #0098ff; 
+            background-color: #3b4c62; 
+            border: 1px solid #6c809a; 
+            color: #ffffff; 
             font-weight: bold; 
-            color: white; 
         }
-        QPushButton#btnRun:hover { background-color: #008be5; }
+        QPushButton#btnRun:hover { background-color: #485e79; }
         QComboBox, QSpinBox, QDoubleSpinBox { 
-            background-color: #1a1a20; 
-            border: 1px solid #444452; 
-            border-radius: 4px; 
-            padding: 4px 6px; 
-            color: #f0f0f0; 
+            background-color: #222222; 
+            border: 1px solid #555555; 
+            border-radius: 3px; 
+            padding: 3px 6px; 
+            color: #eeeeee; 
         }
+        QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border-color: #888888; }
         QSlider::groove:horizontal { 
             height: 4px; 
-            background: #3a3a46; 
+            background: #444444; 
             border-radius: 2px; 
         }
         QSlider::sub-page:horizontal { 
-            background: #4da6ff; 
+            background: #5b6d85; 
             border-radius: 2px; 
         }
         QSlider::handle:horizontal { 
-            background: #ffffff; 
-            border: 1px solid #4da6ff; 
-            width: 14px; 
-            margin-top: -5px; 
-            margin-bottom: -5px; 
-            border-radius: 7px; 
+            background: #d0d0d0; 
+            border: 1px solid #707070; 
+            width: 12px; 
+            margin-top: -4px; 
+            margin-bottom: -4px; 
+            border-radius: 6px; 
         }
-        QTabWidget::pane { border: 1px solid #3d3d4a; background-color: #1a1a20; }
+        QSlider::handle:horizontal:hover { background: #ffffff; }
+        QTabWidget::pane { border: 1px solid #454545; background-color: #242424; }
         QTabBar::tab { 
-            background: #2b2b36; 
-            color: #bbb; 
-            padding: 8px 16px; 
-            border-top-left-radius: 4px; 
-            border-top-right-radius: 4px; 
+            background: #303030; 
+            color: #aaaaaa; 
+            padding: 7px 14px; 
+            border: 1px solid #454545;
+            border-bottom: none;
+            border-top-left-radius: 3px; 
+            border-top-right-radius: 3px; 
             margin-right: 2px;
         }
         QTabBar::tab:selected { 
-            background: #1a1a20; 
-            color: #4da6ff; 
-            border-top: 2px solid #4da6ff; 
-            font-weight: bold;
+            background: #242424; 
+            color: #ffffff; 
+            font-weight: 600;
         }
-        QLabel { color: #cccccc; }
+        QTabBar::tab:hover:!selected { background: #383838; }
+        QLabel { color: #c0c0c0; }
+        QStatusBar { background: #222222; color: #999999; }
     )");
 
     // Titles for image canvases

@@ -59,50 +59,50 @@ void ImageCanvas::resizeEvent(QResizeEvent* event) {
 
 void ImageCanvas::paintEvent(QPaintEvent* /*event*/) {
     QPainter p(this);
-    p.fillRect(rect(), QColor(26, 26, 30));
+    p.fillRect(rect(), QColor(28, 28, 28));
 
     if (!m_image.isNull()) {
         p.setRenderHint(QPainter::SmoothPixmapTransform, m_scale < 2.0);
         QRectF targetRect(m_offset.x(), m_offset.y(), m_image.width() * m_scale, m_image.height() * m_scale);
         p.drawImage(targetRect, m_image);
 
-        // Border around image
-        p.setPen(QColor(80, 80, 90));
+        // Subtle border around image
+        p.setPen(QColor(60, 60, 60));
         p.drawRect(targetRect);
     } else {
-        p.setPen(QColor(150, 150, 150));
+        p.setPen(QColor(120, 120, 120));
         p.drawText(rect(), Qt::AlignCenter, "No image loaded");
     }
 
-    // Title badge at top-left
+    // Clean, minimalist title badge at top-left
     if (!m_title.isEmpty()) {
-        p.setFont(QFont("sans-serif", 10, QFont::Bold));
+        p.setFont(QFont("sans-serif", 10, QFont::DemiBold));
         QFontMetrics fm = p.fontMetrics();
         int textW = fm.horizontalAdvance(m_title);
         int textH = fm.height();
-        QRect badgeRect(10, 10, textW + 16, textH + 8);
+        QRect badgeRect(10, 10, textW + 14, textH + 6);
 
-        p.setBrush(QColor(0, 0, 0, 180));
-        p.setPen(QColor(60, 60, 70));
-        p.drawRoundedRect(badgeRect, 4, 4);
+        p.setBrush(QColor(20, 20, 20, 210));
+        p.setPen(QColor(55, 55, 55));
+        p.drawRoundedRect(badgeRect, 3, 3);
 
-        p.setPen(QColor(240, 240, 240));
+        p.setPen(QColor(220, 220, 220));
         p.drawText(badgeRect, Qt::AlignCenter, m_title);
     }
 
-    // Zoom badge at bottom-right
+    // Unobtrusive zoom badge at bottom-right
     if (!m_image.isNull()) {
         QString zoomStr = QString::number(static_cast<int>(m_scale * 100)) + "%";
         p.setFont(QFont("sans-serif", 9));
         QFontMetrics fm = p.fontMetrics();
         int textW = fm.horizontalAdvance(zoomStr);
-        QRect badgeRect(width() - textW - 20, height() - 25, textW + 12, 18);
+        QRect badgeRect(width() - textW - 16, height() - 23, textW + 10, 16);
 
-        p.setBrush(QColor(0, 0, 0, 150));
+        p.setBrush(QColor(20, 20, 20, 180));
         p.setPen(Qt::NoPen);
-        p.drawRoundedRect(badgeRect, 3, 3);
+        p.drawRoundedRect(badgeRect, 2, 2);
 
-        p.setPen(QColor(180, 180, 180));
+        p.setPen(QColor(160, 160, 160));
         p.drawText(badgeRect, Qt::AlignCenter, zoomStr);
     }
 }
