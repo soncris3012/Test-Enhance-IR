@@ -1,0 +1,21 @@
+# Build directories
+build/
+cmake-build-*/
+.cmake/
+CMakeUserPresets.json
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.user
+.DS_Store
+
+# Virtual environment
+venv/
+.venv/
+__pycache__/
+
+# Output test artifacts (optional, keep directory)
+results/*
+!results/.gitkeep
