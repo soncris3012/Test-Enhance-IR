@@ -1,7 +1,6 @@
 #pragma once
 #include <QWidget>
 #include <QImage>
-#include <QPixmap>
 #include <QPoint>
 
 class ImageCanvas : public QWidget {
@@ -12,11 +11,13 @@ public:
     void setImage(const QImage& img);
     void setTitle(const QString& title);
     void resetView();
+    void applyAutoFit();
 
     void setZoomAndPan(double scale, const QPointF& offset);
 
 signals:
     void viewChanged(double scale, const QPointF& offset);
+    void viewReset();
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -24,6 +25,7 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void mouseDoubleClickEvent(QMouseEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
 
 private:

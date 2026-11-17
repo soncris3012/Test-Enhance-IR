@@ -6,9 +6,10 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QStatusBar>
+#include <QSignalBlocker>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-#include <iostream>
+#include <array>
 #include <cmath>
 
 MainWindow::MainWindow(QWidget* parent)
@@ -20,130 +21,149 @@ MainWindow::MainWindow(QWidget* parent)
         * { color: #dcdcdc; font-size: 12px; }
         QMainWindow, QWidget#centralWidget { background-color: #2b2b2b; }
         QWidget#sidebar { background-color: #262626; border-right: 1px solid #404040; }
-        QGroupBox { 
-            font-weight: 600; 
-            border: 1px solid #505050; 
-            border-radius: 4px; 
-            margin-top: 10px; 
-            padding-top: 12px; 
+        QGroupBox {
+            font-weight: 600;
+            border: 1px solid #505050;
+            border-radius: 4px;
+            margin-top: 10px;
+            padding-top: 12px;
             background-color: #303030;
         }
-        QGroupBox::title { 
-            subcontrol-origin: margin; 
-            subcontrol-position: top left; 
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            subcontrol-position: top left;
             left: 8px;
-            padding: 0 4px; 
-            color: #eeeeee; 
+            padding: 0 4px;
+            color: #eeeeee;
         }
-        QPushButton { 
-            background-color: #3c3c3c; 
-            border: 1px solid #606060; 
-            border-radius: 3px; 
-            padding: 5px 12px; 
+        QPushButton {
+            background-color: #3c3c3c;
+            border: 1px solid #606060;
+            border-radius: 3px;
+            padding: 5px 12px;
             font-weight: 600;
         }
         QPushButton:hover { background-color: #484848; border-color: #808080; }
         QPushButton:pressed { background-color: #2a2a2a; }
-        QPushButton#btnRun { 
-            background-color: #3b4c62; 
-            border: 1px solid #6c809a; 
-            color: #ffffff; 
-            font-weight: bold; 
+        QPushButton#btnRun {
+            background-color: #3b4c62;
+            border: 1px solid #6c809a;
+            color: #ffffff;
+            font-weight: bold;
         }
         QPushButton#btnRun:hover { background-color: #485e79; }
-        QComboBox, QSpinBox, QDoubleSpinBox { 
-            background-color: #222222; 
-            border: 1px solid #555555; 
-            border-radius: 3px; 
-            padding: 3px 6px; 
-            color: #eeeeee; 
+        QComboBox, QSpinBox, QDoubleSpinBox {
+            background-color: #222222;
+            border: 1px solid #555555;
+            border-radius: 3px;
+            padding: 3px 6px;
+            color: #eeeeee;
+        }
+        QComboBox:disabled {
+            background-color: #2a2a2a;
+            color: #777777;
+            border-color: #424242;
         }
         QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus { border-color: #888888; }
-        QSlider::groove:horizontal { 
-            height: 4px; 
-            background: #444444; 
-            border-radius: 2px; 
+        QSlider::groove:horizontal {
+            height: 4px;
+            background: #444444;
+            border-radius: 2px;
         }
-        QSlider::sub-page:horizontal { 
-            background: #5b6d85; 
-            border-radius: 2px; 
+        QSlider::sub-page:horizontal {
+            background: #5b6d85;
+            border-radius: 2px;
         }
-        QSlider::handle:horizontal { 
-            background: #d0d0d0; 
-            border: 1px solid #707070; 
-            width: 12px; 
-            margin-top: -4px; 
-            margin-bottom: -4px; 
-            border-radius: 6px; 
+        QSlider::handle:horizontal {
+            background: #d0d0d0;
+            border: 1px solid #707070;
+            width: 12px;
+            margin-top: -4px;
+            margin-bottom: -4px;
+            border-radius: 6px;
         }
         QSlider::handle:horizontal:hover { background: #ffffff; }
         QTabWidget::pane { border: 1px solid #454545; background-color: #242424; }
-        QTabBar::tab { 
-            background: #303030; 
-            color: #aaaaaa; 
-            padding: 7px 14px; 
+        QTabBar::tab {
+            background: #303030;
+            color: #aaaaaa;
+            padding: 7px 14px;
             border: 1px solid #454545;
             border-bottom: none;
-            border-top-left-radius: 3px; 
-            border-top-right-radius: 3px; 
+            border-top-left-radius: 3px;
+            border-top-right-radius: 3px;
             margin-right: 2px;
         }
-        QTabBar::tab:selected { 
-            background: #242424; 
-            color: #ffffff; 
+        QTabBar::tab:selected {
+            background: #242424;
+            color: #ffffff;
             font-weight: 600;
         }
         QTabBar::tab:hover:!selected { background: #383838; }
         QLabel { color: #c0c0c0; }
+        QLabel:disabled { color: #777777; }
         QStatusBar { background: #222222; color: #999999; }
     )");
 
     // Titles for image canvases
     ui->canvasOriginal->setTitle("Original Infrared Input");
-    ui->canvasEnhanced->setTitle("Enhanced Output (Proposed Algorithm)");
+    ui->canvasEnhanced->setTitle("Enhanced Output");
     ui->canvasStageInput->setTitle("1. Original Image (I)");
     ui->canvasStageBase->setTitle("2. Base Layer (Guided Filter I_base)");
-    ui->canvasStageRawDetail->setTitle("3. Raw Detail Layer (I - I_base)");
-    ui->canvasStageDenoised->setTitle("4. Denoised Detail (NLM)");
-    ui->canvasStageDualGamma->setTitle("5. Dual-Gamma Detail (Eq 8)");
-    ui->canvasStageOutput->setTitle("6. Final Fusion (Eq 9)");
+    ui->canvasStageRawDetail->setTitle("3. Raw Detail Layer (Normalized)");
+    ui->canvasStageDenoised->setTitle("4. Denoised Detail (16-bit NLM)");
+    ui->canvasStageDualGamma->setTitle("5. Dual-Gamma Detail");
+    ui->canvasStageOutput->setTitle("6. Final Output (I_out)");
     ui->canvasRefTarget->setTitle("Paper's Result Image");
     ui->canvasRefOurs->setTitle("Our Implementation Result");
     ui->canvasRefDiff->setTitle("Difference Heatmap (|Ours - Paper|)");
 
-    // Populate comboNorm
+    // Populate Pipeline Mode selector
+    ui->comboMode->addItem("Symmetric Dual-Gamma (Recommended)",
+                           static_cast<int>(ir_enhance::PipelineMode::SymmetricDualGamma));
+    ui->comboMode->addItem("Paper Magnitude (Fig 2c / 3c)",
+                           static_cast<int>(ir_enhance::PipelineMode::PaperMagnitudeFusion));
+    ui->comboMode->addItem("Paper Literal Eq. 8 (Original)",
+                           static_cast<int>(ir_enhance::PipelineMode::PaperLiteralEq8));
+
+    // Populate Detail Normalization selector (active in PaperLiteralEq8 mode)
     ui->comboNorm->addItem("Min-Max (Paper Eq)", static_cast<int>(ir_enhance::DetailNormMode::MinMax));
     ui->comboNorm->addItem("Shift (+0.5)", static_cast<int>(ir_enhance::DetailNormMode::Shift05));
     ui->comboNorm->addItem("Symmetric Centered", static_cast<int>(ir_enhance::DetailNormMode::Symmetric));
+    ui->comboNorm->setToolTip("Detail normalization used in Paper Literal Eq. 8 mode; symmetric zero-preserving scaling is used otherwise.");
 
-    // Dynamically find sample_images directory
-    QString appDir = QCoreApplication::applicationDirPath();
-    QStringList candidates = {
-        appDir + "/../sample_images",
-        appDir + "/sample_images",
-        "/Users/soncris/NCKH2627/infrared_image_enhancement/sample_images",
-        "/Users/soncris/nckh2026/infrared_image_enhancement/sample_images"
-    };
-    for (const QString& candidate : candidates) {
-        if (QDir(candidate).exists()) {
-            m_sampleDir = QDir(candidate).canonicalPath();
-            break;
-        }
-    }
-    if (m_sampleDir.isEmpty()) {
-        m_sampleDir = "/Users/soncris/NCKH2627/infrared_image_enhancement/sample_images";
-    }
+    m_sampleDir = locateSampleDirectory();
 
     setupConnections();
+    onModeChanged();
     populateSampleList();
 
     // Load initial default sample
     if (ui->comboSamples->count() > 1) {
-        ui->comboSamples->setCurrentIndex(1); // Select Scene 1
+        ui->comboSamples->setCurrentIndex(1);
     }
 }
 
 MainWindow::~MainWindow() = default;
+
+QString MainWindow::locateSampleDirectory() {
+    const QStringList roots = {
+        QCoreApplication::applicationDirPath(),
+        QDir::currentPath()
+    };
+    for (const QString& start : roots) {
+        QDir dir(start);
+        for (int depth = 0; depth <= 4; ++depth) {
+            if (dir.exists("sample_images")) {
+                return dir.filePath("sample_images");
+            }
+            if (!dir.cdUp()) {
+                break;
+            }
+        }
+    }
+    return QDir::currentPath();
+}
 
 void MainWindow::setupConnections() {
     // Radius (int)
@@ -240,15 +260,25 @@ void MainWindow::setupConnections() {
     connect(ui->btnOpen, &QPushButton::clicked, this, &MainWindow::onOpenImage);
     connect(ui->btnLoadRef, &QPushButton::clicked, this, &MainWindow::onLoadReference);
     connect(ui->comboSamples, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onSampleSelected);
+    connect(ui->comboMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onModeChanged);
     connect(ui->comboNorm, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onParamChanged);
+    connect(ui->chkAdaptiveNlm, &QCheckBox::toggled, this, &MainWindow::onParamChanged);
     connect(ui->btnRun, &QPushButton::clicked, this, &MainWindow::onRunAlgorithm);
     connect(ui->btnReset, &QPushButton::clicked, this, &MainWindow::onResetDefaults);
     connect(ui->btnSave, &QPushButton::clicked, this, &MainWindow::onSaveOutput);
     connect(ui->btnExportStages, &QPushButton::clicked, this, &MainWindow::onExportStages);
 
-    // Sync views
-    connect(ui->canvasOriginal, &ImageCanvas::viewChanged, this, &MainWindow::onSyncViewChanged);
-    connect(ui->canvasEnhanced, &ImageCanvas::viewChanged, this, &MainWindow::onSyncViewChanged);
+    // Sync zoom/pan & double-click reset across canvases in each tab
+    const std::array<ImageCanvas*, 11> allCanvases = {
+        ui->canvasOriginal, ui->canvasEnhanced,
+        ui->canvasStageInput, ui->canvasStageBase, ui->canvasStageRawDetail,
+        ui->canvasStageDenoised, ui->canvasStageDualGamma, ui->canvasStageOutput,
+        ui->canvasRefTarget, ui->canvasRefOurs, ui->canvasRefDiff
+    };
+    for (ImageCanvas* canvas : allCanvases) {
+        connect(canvas, &ImageCanvas::viewChanged, this, &MainWindow::onSyncViewChanged);
+        connect(canvas, &ImageCanvas::viewReset, this, &MainWindow::onSyncViewReset);
+    }
 }
 
 void MainWindow::populateSampleList() {
@@ -258,64 +288,54 @@ void MainWindow::populateSampleList() {
     QDir dir(m_sampleDir);
     if (!dir.exists()) return;
 
-    QStringList filters;
-    filters << "scene_*_original.png" << "fig2_a_input.png";
-    QStringList files = dir.entryList(filters, QDir::Files, QDir::Name);
-
-    for (const QString& f : files) {
-        QString label = f;
-        if (f.startsWith("scene_")) {
-            QString num = f.split("_").value(1);
-            label = QString("Scene %1 (From Paper)").arg(num);
-        } else if (f == "fig2_a_input.png") {
-            label = "Figure 2 Input (3 stacked scenes)";
+    for (int i = 1; i <= 8; ++i) {
+        const QString fname = QString("scene_%1_original.png").arg(i);
+        if (dir.exists(fname)) {
+            ui->comboSamples->addItem(QString("Scene %1 (From Paper)").arg(i), dir.absoluteFilePath(fname));
         }
-        ui->comboSamples->addItem(label, dir.absoluteFilePath(f));
+    }
+
+    if (dir.exists("fig2_scene1_original.png")) {
+        ui->comboSamples->addItem("Figure 2 - Scene 1 (Cars)", dir.absoluteFilePath("fig2_scene1_original.png"));
+    }
+    if (dir.exists("fig2_scene2_original.png")) {
+        ui->comboSamples->addItem("Figure 2 - Scene 2 (House)", dir.absoluteFilePath("fig2_scene2_original.png"));
     }
 }
 
 void MainWindow::onSampleSelected(int index) {
     if (index <= 0) return;
-    QString path = ui->comboSamples->itemData(index).toString();
-    if (!path.isEmpty()) {
-        loadImage(path);
+    const QString path = ui->comboSamples->itemData(index).toString();
+    if (path.isEmpty()) return;
 
-        QFileInfo fi(path);
-        QString baseName = fi.baseName();
-        if (baseName.startsWith("scene_") && baseName.endsWith("_original")) {
-            QString refName = baseName;
-            refName.replace("_original", "_paper_ours.png");
-            QString refPath = fi.dir().filePath(refName);
-            if (QFile::exists(refPath)) {
-                loadReference(refPath);
-            } else {
-                loadReference("");
-            }
-        } else if (baseName == "fig2_a_input") {
-            QString refPath = fi.dir().filePath("fig2_c_output.png");
-            if (QFile::exists(refPath)) {
-                loadReference(refPath);
-            } else {
-                loadReference("");
-            }
-        } else {
-            loadReference("");
+    // Resolve and load matching reference BEFORE loadImage() so metrics/heatmap stay in sync
+    const QFileInfo fi(path);
+    const QString baseName = fi.baseName();
+    QString refPath;
+    if (baseName.endsWith("_original")) {
+        QString refName = baseName;
+        refName.replace("_original", "_paper_ours.png");
+        const QString candidate = fi.dir().filePath(refName);
+        if (QFile::exists(candidate)) {
+            refPath = candidate;
         }
     }
+    loadReference(refPath);
+    loadImage(path);
 }
 
 void MainWindow::onOpenImage() {
-    QString path = QFileDialog::getOpenFileName(this, "Open Infrared Image", m_sampleDir,
-                                              "Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)");
+    const QString path = QFileDialog::getOpenFileName(this, "Open Infrared Image", m_sampleDir,
+                                                      "Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)");
     if (!path.isEmpty()) {
-        loadImage(path);
         loadReference("");
+        loadImage(path);
     }
 }
 
 void MainWindow::onLoadReference() {
-    QString path = QFileDialog::getOpenFileName(this, "Open Reference/Ground Truth Image", m_sampleDir,
-                                              "Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)");
+    const QString path = QFileDialog::getOpenFileName(this, "Open Reference/Ground Truth Image", m_sampleDir,
+                                                      "Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)");
     if (!path.isEmpty()) {
         loadReference(path);
         updateMetricsDisplay();
@@ -324,7 +344,8 @@ void MainWindow::onLoadReference() {
 }
 
 void MainWindow::loadImage(const QString& path) {
-    cv::Mat img = cv::imread(path.toStdString(), cv::IMREAD_GRAYSCALE);
+    // IMREAD_ANYDEPTH | IMREAD_ANYCOLOR preserves 16-bit thermal TIFF dynamic range
+    cv::Mat img = cv::imread(path.toStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
     if (img.empty()) {
         QMessageBox::warning(this, "Error", "Failed to load image: " + path);
         return;
@@ -332,33 +353,51 @@ void MainWindow::loadImage(const QString& path) {
     m_inputMat = img;
     m_currentImagePath = path;
 
-    QImage qIn = matToQImage(m_inputMat);
-    ui->canvasOriginal->setImage(qIn);
-    ui->canvasStageInput->setImage(qIn);
-
-    statusBar()->showMessage(QString("Loaded: %1 (%2x%3)").arg(QFileInfo(path).fileName()).arg(img.cols).arg(img.rows));
     updateProcessing();
+    statusBar()->showMessage(QString("Loaded: %1 (%2x%3, depth=%4) | Enhanced in %5 ms")
+                             .arg(QFileInfo(path).fileName())
+                             .arg(img.cols)
+                             .arg(img.rows)
+                             .arg(img.depth() == CV_16U ? "16-bit" : (img.depth() == CV_8U ? "8-bit" : "float"))
+                             .arg(m_stages.elapsedMs, 0, 'f', 1));
 }
 
 void MainWindow::loadReference(const QString& path) {
     if (path.isEmpty()) {
         m_refMat = cv::Mat();
         ui->lblRefStatus->setText("Reference: None");
-        ui->lblPsnr->setText("-");
-        ui->lblSsim->setText("-");
         ui->canvasRefTarget->setImage(QImage());
         ui->canvasRefDiff->setImage(QImage());
         return;
     }
 
-    cv::Mat ref = cv::imread(path.toStdString(), cv::IMREAD_GRAYSCALE);
+    cv::Mat ref = cv::imread(path.toStdString(), cv::IMREAD_ANYDEPTH | cv::IMREAD_ANYCOLOR);
     if (ref.empty()) {
+        m_refMat = cv::Mat();
         ui->lblRefStatus->setText("Reference: Failed to load");
+        ui->canvasRefTarget->setImage(QImage());
+        ui->canvasRefDiff->setImage(QImage());
         return;
+    }
+    if (ref.channels() == 3) {
+        cv::cvtColor(ref, ref, cv::COLOR_BGR2GRAY);
+    } else if (ref.channels() == 4) {
+        cv::cvtColor(ref, ref, cv::COLOR_BGRA2GRAY);
+    }
+    if (ref.depth() != CV_8U) {
+        cv::normalize(ref, ref, 0, 255, cv::NORM_MINMAX, CV_8U);
     }
     m_refMat = ref;
     ui->lblRefStatus->setText("Reference: " + QFileInfo(path).fileName());
     ui->canvasRefTarget->setImage(matToQImage(m_refMat));
+}
+
+void MainWindow::onModeChanged() {
+    const auto mode = static_cast<ir_enhance::PipelineMode>(ui->comboMode->currentData().toInt());
+    const bool useLiteralNorm = (mode == ir_enhance::PipelineMode::PaperLiteralEq8);
+    ui->lblNorm->setEnabled(useLiteralNorm);
+    ui->comboNorm->setEnabled(useLiteralNorm);
+    onParamChanged();
 }
 
 void MainWindow::onParamChanged() {
@@ -390,9 +429,12 @@ void MainWindow::onResetDefaults() {
     ui->sliderAlpha->setValue(60);
     ui->spinAlpha->setValue(0.60);
 
-    ui->comboNorm->setCurrentIndex(0); // MinMax
+    ui->comboMode->setCurrentIndex(0);
+    ui->comboNorm->setCurrentIndex(0);
+    ui->chkAdaptiveNlm->setChecked(true);
     m_isUpdatingUI = false;
 
+    onModeChanged();
     updateProcessing();
 }
 
@@ -403,22 +445,25 @@ void MainWindow::updateProcessing() {
     params.guidedRadius = ui->spinRadius->value();
     params.guidedEps = static_cast<float>(ui->spinEps->value());
     params.nlmH = static_cast<float>(ui->spinH->value());
+    params.adaptiveNlm = ui->chkAdaptiveNlm->isChecked();
     params.gamma = static_cast<float>(ui->spinGamma->value());
     params.alpha = static_cast<float>(ui->spinAlpha->value());
+    params.mode = static_cast<ir_enhance::PipelineMode>(ui->comboMode->currentData().toInt());
     params.normMode = static_cast<ir_enhance::DetailNormMode>(ui->comboNorm->currentData().toInt());
 
     m_stages = ir_enhance::EnhancementPipeline::process(m_inputMat, params);
 
-    // Update images in canvases
-    QImage qOut = matToQImage(m_stages.fusedResult);
+    const QImage qIn = matToQImage(m_stages.input8u);
+    const QImage qOut = matToQImage(m_stages.fusedResult);
+
+    ui->canvasOriginal->setImage(qIn);
+    ui->canvasStageInput->setImage(qIn);
     ui->canvasEnhanced->setImage(qOut);
     ui->canvasStageOutput->setImage(qOut);
     ui->canvasRefOurs->setImage(qOut);
 
-    // Stages: Convert floats in [0, 1] to 8-bit for display
     auto floatToQImage = [](const cv::Mat& fMat) {
-        cv::Mat u8;
-        cv::Mat clamped;
+        cv::Mat clamped, u8;
         cv::min(cv::max(fMat, 0.0f), 1.0f, clamped);
         clamped.convertTo(u8, CV_8U, 255.0);
         return matToQImage(u8);
@@ -439,10 +484,14 @@ void MainWindow::updateProcessing() {
 }
 
 void MainWindow::updateMetricsDisplay() {
-    if (m_inputMat.empty() || m_stages.fusedResult.empty()) return;
+    if (m_stages.input8u.empty() || m_stages.fusedResult.empty()) return;
 
-    auto mIn = ir_enhance::EnhancementPipeline::computeMetrics(m_inputMat);
-    auto mOut = ir_enhance::EnhancementPipeline::computeMetrics(m_stages.fusedResult, m_refMat);
+    const bool hasRef = !m_refMat.empty() && m_refMat.size() == m_stages.fusedResult.size();
+    const cv::Mat& cmpTarget = hasRef ? m_refMat : m_stages.input8u;
+    const QString targetSuffix = hasRef ? "(vs Ref):" : "(vs Input):";
+
+    const auto mIn = ir_enhance::EnhancementPipeline::computeMetrics(m_stages.input8u);
+    const auto mOut = ir_enhance::EnhancementPipeline::computeMetrics(m_stages.fusedResult, cmpTarget);
 
     ui->lblTime->setText(QString("%1 ms").arg(m_stages.elapsedMs, 0, 'f', 1));
     ui->lblEntropyIn->setText(QString::number(mIn.imageEntropy, 'f', 3));
@@ -452,13 +501,13 @@ void MainWindow::updateMetricsDisplay() {
     ui->lblRMSIn->setText(QString::number(mIn.rmsContrast, 'f', 3));
     ui->lblRMSOut->setText(QString::number(mOut.rmsContrast, 'f', 3));
 
-    if (!m_refMat.empty() && m_refMat.size() == m_stages.fusedResult.size()) {
-        ui->lblPsnr->setText(QString("%1 dB").arg(mOut.psnr, 0, 'f', 2));
-        ui->lblSsim->setText(QString::number(mOut.ssim, 'f', 3));
-    } else {
-        ui->lblPsnr->setText("-");
-        ui->lblSsim->setText("-");
-    }
+    ui->lblTitleRmse->setText("RMSE " + targetSuffix);
+    ui->lblTitlePsnr->setText("PSNR " + targetSuffix);
+    ui->lblTitleSsim->setText("SSIM " + targetSuffix);
+
+    ui->lblRmse->setText(QString::number(mOut.rmse, 'f', 4));
+    ui->lblPsnr->setText(QString("%1 dB").arg(mOut.psnr, 0, 'f', 2));
+    ui->lblSsim->setText(QString::number(mOut.ssim, 'f', 3));
 }
 
 void MainWindow::updateHeatmap() {
@@ -479,11 +528,54 @@ void MainWindow::onSyncViewChanged(double scale, const QPointF& offset) {
     if (!ui->chkSyncViews->isChecked()) return;
 
     auto* senderCanvas = qobject_cast<ImageCanvas*>(sender());
-    if (senderCanvas == ui->canvasOriginal) {
-        ui->canvasEnhanced->setZoomAndPan(scale, offset);
-    } else if (senderCanvas == ui->canvasEnhanced) {
-        ui->canvasOriginal->setZoomAndPan(scale, offset);
-    }
+    if (!senderCanvas) return;
+
+    const std::array<ImageCanvas*, 2> tab1 = {ui->canvasOriginal, ui->canvasEnhanced};
+    const std::array<ImageCanvas*, 6> tab2 = {
+        ui->canvasStageInput, ui->canvasStageBase, ui->canvasStageRawDetail,
+        ui->canvasStageDenoised, ui->canvasStageDualGamma, ui->canvasStageOutput
+    };
+    const std::array<ImageCanvas*, 3> tab3 = {ui->canvasRefTarget, ui->canvasRefOurs, ui->canvasRefDiff};
+
+    auto syncGroup = [&](auto& group) {
+        if (std::find(group.begin(), group.end(), senderCanvas) != group.end()) {
+            for (ImageCanvas* c : group) {
+                if (c != senderCanvas) {
+                    c->setZoomAndPan(scale, offset);
+                }
+            }
+        }
+    };
+    syncGroup(tab1);
+    syncGroup(tab2);
+    syncGroup(tab3);
+}
+
+void MainWindow::onSyncViewReset() {
+    if (!ui->chkSyncViews->isChecked()) return;
+
+    auto* senderCanvas = qobject_cast<ImageCanvas*>(sender());
+    if (!senderCanvas) return;
+
+    const std::array<ImageCanvas*, 2> tab1 = {ui->canvasOriginal, ui->canvasEnhanced};
+    const std::array<ImageCanvas*, 6> tab2 = {
+        ui->canvasStageInput, ui->canvasStageBase, ui->canvasStageRawDetail,
+        ui->canvasStageDenoised, ui->canvasStageDualGamma, ui->canvasStageOutput
+    };
+    const std::array<ImageCanvas*, 3> tab3 = {ui->canvasRefTarget, ui->canvasRefOurs, ui->canvasRefDiff};
+
+    auto resetGroup = [&](auto& group) {
+        if (std::find(group.begin(), group.end(), senderCanvas) != group.end()) {
+            for (ImageCanvas* c : group) {
+                if (c != senderCanvas) {
+                    c->applyAutoFit();
+                }
+            }
+        }
+    };
+    resetGroup(tab1);
+    resetGroup(tab2);
+    resetGroup(tab3);
 }
 
 void MainWindow::onSaveOutput() {
@@ -491,45 +583,70 @@ void MainWindow::onSaveOutput() {
 
     QString defaultName = "enhanced_output.png";
     if (!m_currentImagePath.isEmpty()) {
-        QFileInfo fi(m_currentImagePath);
+        const QFileInfo fi(m_currentImagePath);
         defaultName = fi.baseName() + "_enhanced.png";
     }
 
     QString savePath = QFileDialog::getSaveFileName(this, "Save Enhanced Image", defaultName,
                                                     "PNG Image (*.png);;JPEG Image (*.jpg);;All Files (*)");
-    if (!savePath.isEmpty()) {
-        cv::imwrite(savePath.toStdString(), m_stages.fusedResult);
+    if (savePath.isEmpty()) return;
+
+    if (QFileInfo(savePath).suffix().isEmpty()) {
+        savePath += ".png";
+    }
+
+    try {
+        if (!cv::imwrite(savePath.toStdString(), m_stages.fusedResult)) {
+            QMessageBox::warning(this, "Save Failed", "Could not write output image to:\n" + savePath);
+            return;
+        }
         statusBar()->showMessage("Saved image to: " + savePath);
+    } catch (const cv::Exception& ex) {
+        QMessageBox::warning(this, "Save Failed", QString("OpenCV error while saving:\n%1").arg(ex.what()));
     }
 }
 
 void MainWindow::onExportStages() {
     if (m_stages.fusedResult.empty()) return;
 
-    QString dirPath = QFileDialog::getExistingDirectory(this, "Select Directory to Export Stages");
+    const QString dirPath = QFileDialog::getExistingDirectory(this, "Select Directory to Export Stages");
     if (dirPath.isEmpty()) return;
 
-    QFileInfo fi(m_currentImagePath);
+    const QFileInfo fi(m_currentImagePath);
     QString base = fi.baseName();
     if (base.isEmpty()) base = "infrared";
 
-    auto saveFloat = [&](const cv::Mat& fMat, const QString& suffix) {
-        cv::Mat u8;
-        cv::Mat clamped;
-        cv::min(cv::max(fMat, 0.0f), 1.0f, clamped);
-        clamped.convertTo(u8, CV_8U, 255.0);
-        QString outPath = QDir(dirPath).filePath(base + suffix);
-        cv::imwrite(outPath.toStdString(), u8);
+    bool allOk = true;
+    auto writeMat = [&](const cv::Mat& mat, const QString& suffix) {
+        const QString outPath = QDir(dirPath).filePath(base + suffix);
+        try {
+            if (!cv::imwrite(outPath.toStdString(), mat)) {
+                allOk = false;
+            }
+        } catch (const cv::Exception&) {
+            allOk = false;
+        }
     };
 
-    cv::imwrite(QDir(dirPath).filePath(base + "_1_input.png").toStdString(), m_stages.input8u);
+    auto saveFloat = [&](const cv::Mat& fMat, const QString& suffix) {
+        cv::Mat clamped, u8;
+        cv::min(cv::max(fMat, 0.0f), 1.0f, clamped);
+        clamped.convertTo(u8, CV_8U, 255.0);
+        writeMat(u8, suffix);
+    };
+
+    writeMat(m_stages.input8u, "_1_input.png");
     saveFloat(m_stages.baseLayer, "_2_base.png");
     saveFloat(m_stages.normalizedDetail, "_3_raw_detail.png");
     saveFloat(m_stages.denoisedDetail, "_4_denoised_detail.png");
     saveFloat(m_stages.enhancedDetail, "_5_dual_gamma_detail.png");
-    cv::imwrite(QDir(dirPath).filePath(base + "_6_final_output.png").toStdString(), m_stages.fusedResult);
+    writeMat(m_stages.fusedResult, "_6_final_output.png");
 
-    QMessageBox::information(this, "Export Finished", "Exported 6 stages successfully to:\n" + dirPath);
+    if (allOk) {
+        QMessageBox::information(this, "Export Finished", "Exported 6 stages successfully to:\n" + dirPath);
+    } else {
+        QMessageBox::warning(this, "Export Incomplete", "Some files could not be written to:\n" + dirPath);
+    }
 }
 
 QImage MainWindow::matToQImage(const cv::Mat& mat) {

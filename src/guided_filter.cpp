@@ -9,7 +9,9 @@ cv::Mat guidedFilter(const cv::Mat& I, const cv::Mat& p, int r, float eps) {
     CV_Assert(I.channels() == 1 && p.channels() == 1);
     CV_Assert(I.size() == p.size());
 
-    cv::Size ksize(2 * r + 1, 2 * r + 1);
+    const int radius = std::max(1, r);
+    const float regEps = std::max(1e-6f, eps);
+    const cv::Size ksize(2 * radius + 1, 2 * radius + 1);
 
     cv::Mat mean_I, mean_p, mean_Ip, mean_II;
     cv::boxFilter(I, mean_I, CV_32F, ksize, cv::Point(-1, -1), true, cv::BORDER_REFLECT);
@@ -19,9 +21,10 @@ cv::Mat guidedFilter(const cv::Mat& I, const cv::Mat& p, int r, float eps) {
 
     cv::Mat cov_Ip = mean_Ip - mean_I.mul(mean_p);
     cv::Mat var_I = mean_II - mean_I.mul(mean_I);
+    cv::max(var_I, 0.0f, var_I);
 
     // a = cov_Ip / (var_I + eps)
-    cv::Mat a = cov_Ip / (var_I + eps);
+    cv::Mat a = cov_Ip / (var_I + regEps);
     // b = mean_p - a * mean_I
     cv::Mat b = mean_p - a.mul(mean_I);
 

@@ -19,12 +19,14 @@ private slots:
     void onOpenImage();
     void onLoadReference();
     void onSampleSelected(int index);
+    void onModeChanged();
     void onParamChanged();
     void onRunAlgorithm();
     void onResetDefaults();
     void onSaveOutput();
     void onExportStages();
     void onSyncViewChanged(double scale, const QPointF& offset);
+    void onSyncViewReset();
 
 private:
     void setupConnections();
@@ -35,6 +37,7 @@ private:
     void updateMetricsDisplay();
     void updateHeatmap();
 
+    static QString locateSampleDirectory();
     static QImage matToQImage(const cv::Mat& mat);
 
     std::unique_ptr<Ui::MainWindow> ui;

@@ -7,11 +7,15 @@
 ImageCanvas::ImageCanvas(QWidget* parent) : QWidget(parent) {
     setMouseTracking(true);
     setAttribute(Qt::WA_OpaquePaintEvent, false);
-    setStyleSheet("background-color: #1a1a1a;");
+    setStyleSheet("background-color: #1c1c1c;");
 }
 
 void ImageCanvas::setImage(const QImage& img) {
+    const bool sizeChanged = (m_image.size() != img.size()) || img.isNull();
     m_image = img;
+    if (sizeChanged) {
+        m_autoFit = true;
+    }
     if (m_autoFit) {
         updateFitScale();
     }
@@ -24,10 +28,13 @@ void ImageCanvas::setTitle(const QString& title) {
 }
 
 void ImageCanvas::resetView() {
+    applyAutoFit();
+}
+
+void ImageCanvas::applyAutoFit() {
     m_autoFit = true;
     updateFitScale();
     update();
-    emit viewChanged(m_scale, m_offset);
 }
 
 void ImageCanvas::setZoomAndPan(double scale, const QPointF& offset) {
@@ -40,13 +47,13 @@ void ImageCanvas::setZoomAndPan(double scale, const QPointF& offset) {
 void ImageCanvas::updateFitScale() {
     if (m_image.isNull() || width() <= 0 || height() <= 0) return;
 
-    double sx = static_cast<double>(width() - 20) / m_image.width();
-    double sy = static_cast<double>(height() - 40) / m_image.height();
+    const double sx = static_cast<double>(width() - 20) / m_image.width();
+    const double sy = static_cast<double>(height() - 40) / m_image.height();
     m_scale = std::min(sx, sy);
     if (m_scale <= 0.001) m_scale = 1.0;
 
-    double drawW = m_image.width() * m_scale;
-    double drawH = m_image.height() * m_scale;
+    const double drawW = m_image.width() * m_scale;
+    const double drawH = m_image.height() * m_scale;
     m_offset = QPointF((width() - drawW) / 2.0, (height() - drawH + 20) / 2.0);
 }
 
@@ -76,10 +83,13 @@ void ImageCanvas::paintEvent(QPaintEvent* /*event*/) {
 
     // Clean, minimalist title badge at top-left
     if (!m_title.isEmpty()) {
-        p.setFont(QFont("sans-serif", 10, QFont::DemiBold));
+        QFont titleFont = font();
+        titleFont.setPointSize(10);
+        titleFont.setWeight(QFont::DemiBold);
+        p.setFont(titleFont);
         QFontMetrics fm = p.fontMetrics();
-        int textW = fm.horizontalAdvance(m_title);
-        int textH = fm.height();
+        const int textW = fm.horizontalAdvance(m_title);
+        const int textH = fm.height();
         QRect badgeRect(10, 10, textW + 14, textH + 6);
 
         p.setBrush(QColor(20, 20, 20, 210));
@@ -92,10 +102,12 @@ void ImageCanvas::paintEvent(QPaintEvent* /*event*/) {
 
     // Unobtrusive zoom badge at bottom-right
     if (!m_image.isNull()) {
-        QString zoomStr = QString::number(static_cast<int>(m_scale * 100)) + "%";
-        p.setFont(QFont("sans-serif", 9));
+        const QString zoomStr = QString::number(static_cast<int>(m_scale * 100)) + "%";
+        QFont zoomFont = font();
+        zoomFont.setPointSize(9);
+        p.setFont(zoomFont);
         QFontMetrics fm = p.fontMetrics();
-        int textW = fm.horizontalAdvance(zoomStr);
+        const int textW = fm.horizontalAdvance(zoomStr);
         QRect badgeRect(width() - textW - 16, height() - 23, textW + 10, 16);
 
         p.setBrush(QColor(20, 20, 20, 180));
@@ -111,11 +123,10 @@ void ImageCanvas::wheelEvent(QWheelEvent* event) {
     if (m_image.isNull()) return;
 
     m_autoFit = false;
-    double factor = (event->angleDelta().y() > 0) ? 1.15 : (1.0 / 1.15);
+    const double factor = (event->angleDelta().y() > 0) ? 1.15 : (1.0 / 1.15);
 
-    QPointF mousePos = event->position();
-    // Anchor zoom around mouse position
-    QPointF imgPoint = (mousePos - m_offset) / m_scale;
+    const QPointF mousePos = event->position();
+    const QPointF imgPoint = (mousePos - m_offset) / m_scale;
 
     m_scale = std::clamp(m_scale * factor, 0.05, 30.0);
     m_offset = mousePos - imgPoint * m_scale;
@@ -135,7 +146,7 @@ void ImageCanvas::mousePressEvent(QMouseEvent* event) {
 void ImageCanvas::mouseMoveEvent(QMouseEvent* event) {
     if (m_isDragging) {
         m_autoFit = false;
-        QPoint delta = event->pos() - m_lastMousePos;
+        const QPoint delta = event->pos() - m_lastMousePos;
         m_lastMousePos = event->pos();
         m_offset += QPointF(delta.x(), delta.y());
         update();
@@ -147,5 +158,12 @@ void ImageCanvas::mouseReleaseEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
         m_isDragging = false;
         setCursor(Qt::ArrowCursor);
+    }
+}
+
+void ImageCanvas::mouseDoubleClickEvent(QMouseEvent* event) {
+    if (event->button() == Qt::LeftButton && !m_image.isNull()) {
+        resetView();
+        emit viewReset();
     }
 }
