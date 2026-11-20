@@ -20,7 +20,25 @@ MainWindow::MainWindow(QWidget* parent)
     setStyleSheet(R"(
         * { color: #dcdcdc; font-size: 12px; }
         QMainWindow, QWidget#centralWidget { background-color: #2b2b2b; }
-        QWidget#sidebar { background-color: #262626; border-right: 1px solid #404040; }
+        QScrollArea#sidebarScroll { background-color: #262626; border: none; border-right: 1px solid #404040; }
+        QScrollArea#sidebarScroll > QWidget > QWidget { background-color: #262626; }
+        QWidget#sidebar { background-color: #262626; }
+        QScrollBar:vertical {
+            background: #262626;
+            width: 8px;
+            margin: 0px;
+        }
+        QScrollBar::handle:vertical {
+            background: #4a4a4a;
+            min-height: 20px;
+            border-radius: 4px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: #6a6a6a;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
         QGroupBox {
             font-weight: 600;
             border: 1px solid #505050;
