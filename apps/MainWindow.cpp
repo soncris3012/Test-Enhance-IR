@@ -340,10 +340,10 @@ void MainWindow::refreshDatasets(const QString& rootPath) {
         }
     }
 
-    ui->comboDataset->addItem("📂 Browse Custom Folder...", "__BROWSE_FOLDER__");
+    ui->comboDataset->addItem("[ Browse Custom Folder... ]", "__BROWSE_FOLDER__");
 
     if (rootPath.isEmpty()) {
-        ui->lblDatasetStatus->setText("Root: Built-in only (Click 📁 to set root)");
+        ui->lblDatasetStatus->setText("Root: Built-in only (Click '...' to set root)");
     } else {
         QString compact = rootPath;
         const QString home = QDir::homePath();

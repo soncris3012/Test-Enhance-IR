@@ -174,7 +174,7 @@
               <widget class="QPushButton" name="btnSetRoot">
                <property name="maximumSize">
                 <size>
-                 <width>32</width>
+                 <width>36</width>
                  <height>26</height>
                 </size>
                </property>
@@ -182,7 +182,7 @@
                 <string>Change Dataset Root Folder...</string>
                </property>
                <property name="text">
-                <string>📁</string>
+                <string>...</string>
                </property>
               </widget>
              </item>
@@ -202,7 +202,7 @@
                 <string>Previous Image (Left Arrow)</string>
                </property>
                <property name="text">
-                <string>◀</string>
+                <string>&lt;</string>
                </property>
               </widget>
              </item>
@@ -228,7 +228,7 @@
                 <string>Next Image (Right Arrow)</string>
                </property>
                <property name="text">
-                <string>▶</string>
+                <string>&gt;</string>
                </property>
               </widget>
              </item>
