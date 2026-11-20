@@ -49,7 +49,6 @@ private:
     void loadReference(const QString& path);
     void updateProcessing();
     void updateMetricsDisplay();
-    void updateHeatmap();
 
     static QString locateSampleDirectory();
     static QImage matToQImage(const cv::Mat& mat);

@@ -146,10 +146,6 @@ MainWindow::MainWindow(QWidget* parent)
     ui->canvasStageDualGamma->setTitle("5. Dual-Gamma Detail");
     ui->canvasStageOutput->setTitle("6. Final Output (I_out)");
 
-    ui->canvasRefTarget->setTitle("Paper's Result Image");
-    ui->canvasRefOurs->setTitle("Our Implementation Result");
-    ui->canvasRefDiff->setTitle("Difference Heatmap (|Ours - Paper|)");
-
     // Populate Mode selector
     ui->comboMode->addItem("Symmetric Dual-Gamma (Recommended)",
                            static_cast<int>(ir_enhance::PipelineMode::SymmetricDualGamma));
@@ -303,11 +299,10 @@ void MainWindow::setupConnections() {
     connect(ui->btnExportStages, &QPushButton::clicked, this, &MainWindow::onExportStages);
 
     // Sync zoom/pan & double-click reset across canvases in each tab
-    const std::array<ImageCanvas*, 11> allCanvases = {
+    const std::array<ImageCanvas*, 8> allCanvases = {
         ui->canvasOriginal, ui->canvasEnhanced,
         ui->canvasStageInput, ui->canvasStageBase, ui->canvasStageRawDetail,
-        ui->canvasStageDenoised, ui->canvasStageDualGamma, ui->canvasStageOutput,
-        ui->canvasRefTarget, ui->canvasRefOurs, ui->canvasRefDiff
+        ui->canvasStageDenoised, ui->canvasStageDualGamma, ui->canvasStageOutput
     };
     for (ImageCanvas* canvas : allCanvases) {
         connect(canvas, &ImageCanvas::viewChanged, this, &MainWindow::onSyncViewChanged);
@@ -509,7 +504,6 @@ void MainWindow::onLoadReference() {
     if (!path.isEmpty()) {
         loadReference(path);
         updateMetricsDisplay();
-        updateHeatmap();
     }
 }
 
@@ -536,8 +530,6 @@ void MainWindow::loadReference(const QString& path) {
     if (path.isEmpty()) {
         m_refMat = cv::Mat();
         ui->lblRefStatus->setText("Reference: None (Real Dataset)");
-        ui->canvasRefTarget->setImage(QImage());
-        ui->canvasRefDiff->setImage(QImage());
         return;
     }
 
@@ -545,8 +537,6 @@ void MainWindow::loadReference(const QString& path) {
     if (ref.empty()) {
         m_refMat = cv::Mat();
         ui->lblRefStatus->setText("Reference: Failed to load");
-        ui->canvasRefTarget->setImage(QImage());
-        ui->canvasRefDiff->setImage(QImage());
         return;
     }
     if (ref.channels() == 3) {
@@ -559,7 +549,6 @@ void MainWindow::loadReference(const QString& path) {
     }
     m_refMat = ref;
     ui->lblRefStatus->setText("Reference: " + QFileInfo(path).fileName());
-    ui->canvasRefTarget->setImage(matToQImage(m_refMat));
 }
 
 void MainWindow::onModeChanged() {
@@ -630,7 +619,6 @@ void MainWindow::updateProcessing() {
     ui->canvasStageInput->setImage(qIn);
     ui->canvasEnhanced->setImage(qOut);
     ui->canvasStageOutput->setImage(qOut);
-    ui->canvasRefOurs->setImage(qOut);
 
     auto floatToQImage = [](const cv::Mat& fMat) {
         cv::Mat clamped, u8;
@@ -645,7 +633,6 @@ void MainWindow::updateProcessing() {
     ui->canvasStageDualGamma->setImage(floatToQImage(m_stages.enhancedDetail));
 
     updateMetricsDisplay();
-    updateHeatmap();
 
     statusBar()->showMessage(QString("Enhanced in %1 ms | Size: %2x%3")
                              .arg(m_stages.elapsedMs, 0, 'f', 1)
@@ -680,20 +667,6 @@ void MainWindow::updateMetricsDisplay() {
     ui->lblSsim->setText(QString::number(mOut.ssim, 'f', 3));
 }
 
-void MainWindow::updateHeatmap() {
-    if (m_refMat.empty() || m_stages.fusedResult.empty() || m_refMat.size() != m_stages.fusedResult.size()) {
-        ui->canvasRefDiff->setImage(QImage());
-        return;
-    }
-
-    cv::Mat diff;
-    cv::absdiff(m_stages.fusedResult, m_refMat, diff);
-    cv::Mat colorDiff;
-    cv::applyColorMap(diff, colorDiff, cv::COLORMAP_JET);
-
-    ui->canvasRefDiff->setImage(matToQImage(colorDiff));
-}
-
 void MainWindow::onSyncViewChanged(double scale, const QPointF& offset) {
     if (!ui->chkSyncViews->isChecked()) return;
 
@@ -705,7 +678,6 @@ void MainWindow::onSyncViewChanged(double scale, const QPointF& offset) {
         ui->canvasStageInput, ui->canvasStageBase, ui->canvasStageRawDetail,
         ui->canvasStageDenoised, ui->canvasStageDualGamma, ui->canvasStageOutput
     };
-    const std::array<ImageCanvas*, 3> tab3 = {ui->canvasRefTarget, ui->canvasRefOurs, ui->canvasRefDiff};
 
     auto syncGroup = [&](auto& group) {
         if (std::find(group.begin(), group.end(), senderCanvas) != group.end()) {
@@ -718,7 +690,6 @@ void MainWindow::onSyncViewChanged(double scale, const QPointF& offset) {
     };
     syncGroup(tab1);
     syncGroup(tab2);
-    syncGroup(tab3);
 }
 
 void MainWindow::onSyncViewReset() {
@@ -732,7 +703,6 @@ void MainWindow::onSyncViewReset() {
         ui->canvasStageInput, ui->canvasStageBase, ui->canvasStageRawDetail,
         ui->canvasStageDenoised, ui->canvasStageDualGamma, ui->canvasStageOutput
     };
-    const std::array<ImageCanvas*, 3> tab3 = {ui->canvasRefTarget, ui->canvasRefOurs, ui->canvasRefDiff};
 
     auto resetGroup = [&](auto& group) {
         if (std::find(group.begin(), group.end(), senderCanvas) != group.end()) {
@@ -745,7 +715,6 @@ void MainWindow::onSyncViewReset() {
     };
     resetGroup(tab1);
     resetGroup(tab2);
-    resetGroup(tab3);
 }
 
 void MainWindow::onSaveOutput() {

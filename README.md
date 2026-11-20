@@ -74,10 +74,9 @@
 * **Giao diện Qt 6 tối giản & Chống bẹp font (`apps/MainWindow.ui`)**:
   - Thiết kế tông tối trung tính, bọc trong `QScrollArea` cuộn mượt mà trên mọi độ phân giải màn hình.
   - Khóa `minimumHeight` chống hiện tượng vỡ/cắt chữ trong Qt Creator Designer.
-* **Trực quan hóa 3 Tabs với Zoom/Pan đồng bộ**:
+* **Trực quan hóa 2 Tabs với Zoom/Pan đồng bộ**:
   1. **Before / After Comparison**: So sánh song song ảnh gốc và ảnh tăng cường.
   2. **Algorithm Pipeline (All 6 Stages)**: Quan sát cả 6 tầng trung gian ($I \to I_{base} \to I_{de} \to \text{NLM} \to \text{Dual-}\gamma \to I_{out}$).
-  3. **Benchmarking vs Paper Ours**: Đối chiếu trực tiếp với ảnh kết quả bài báo kèm **Heatmap sai khác (`COLORMAP_JET`)**.
   - **Tương tác chuột**: Lăn chuột giữa để zoom tại vị trí con trỏ, kéo chuột trái để pan, **nhấp đúp chuột trái (double-click)** để reset về fit-to-window; đồng bộ hóa zoom/pan/reset trên toàn bộ các khung hình trong cùng tab.
 * **Đo lường chỉ số định lượng thời gian thực**:
   - Thời gian xử lý (ms), Image Entropy (**IE**), Gradient Entropy (**GE**), **RMS Contrast**.

@@ -51,13 +51,13 @@
        </size>
       </property>
       <property name="frameShape">
-       <enum>QFrame::NoFrame</enum>
-      </property>
-      <property name="horizontalScrollBarPolicy">
-       <enum>Qt::ScrollBarAlwaysOff</enum>
+       <enum>QFrame::Shape::NoFrame</enum>
       </property>
       <property name="verticalScrollBarPolicy">
-       <enum>Qt::ScrollBarAsNeeded</enum>
+       <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarPolicy::ScrollBarAlwaysOff</enum>
       </property>
       <property name="widgetResizable">
        <bool>true</bool>
@@ -67,7 +67,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>370</width>
+         <width>390</width>
          <height>1050</height>
         </rect>
        </property>
@@ -271,7 +271,12 @@
         </item>
         <item>
          <widget class="QGroupBox" name="grpParams">
-          <property name="minimumSize"><size><width>0</width><height>460</height></size></property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>460</height>
+           </size>
+          </property>
           <property name="title">
            <string>2. Algorithm Parameters (Paper)</string>
           </property>
@@ -338,7 +343,7 @@
                 <number>2</number>
                </property>
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Orientation::Horizontal</enum>
                </property>
               </widget>
              </item>
@@ -409,7 +414,7 @@
                 <number>40</number>
                </property>
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Orientation::Horizontal</enum>
                </property>
               </widget>
              </item>
@@ -474,7 +479,7 @@
                 <number>100</number>
                </property>
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Orientation::Horizontal</enum>
                </property>
               </widget>
              </item>
@@ -545,7 +550,7 @@
                 <number>20</number>
                </property>
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Orientation::Horizontal</enum>
                </property>
               </widget>
              </item>
@@ -610,7 +615,7 @@
                 <number>60</number>
                </property>
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Orientation::Horizontal</enum>
                </property>
               </widget>
              </item>
@@ -762,7 +767,7 @@
           </property>
           <layout class="QFormLayout" name="formLayout">
            <property name="labelAlignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+            <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
            </property>
            <property name="horizontalSpacing">
             <number>10</number>
@@ -1074,7 +1079,7 @@
         <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -1091,7 +1096,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tabComparison">
        <attribute name="title">
@@ -1158,37 +1163,6 @@
         </item>
         <item row="1" column="2">
          <widget class="ImageCanvas" name="canvasStageOutput" native="true"/>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tabRef">
-       <attribute name="title">
-        <string>Benchmarking vs Paper Ours</string>
-       </attribute>
-       <layout class="QHBoxLayout" name="refLayout">
-        <property name="spacing">
-         <number>4</number>
-        </property>
-        <property name="leftMargin">
-         <number>4</number>
-        </property>
-        <property name="topMargin">
-         <number>4</number>
-        </property>
-        <property name="rightMargin">
-         <number>4</number>
-        </property>
-        <property name="bottomMargin">
-         <number>4</number>
-        </property>
-        <item>
-         <widget class="ImageCanvas" name="canvasRefTarget" native="true"/>
-        </item>
-        <item>
-         <widget class="ImageCanvas" name="canvasRefOurs" native="true"/>
-        </item>
-        <item>
-         <widget class="ImageCanvas" name="canvasRefDiff" native="true"/>
         </item>
        </layout>
       </widget>
