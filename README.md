@@ -66,8 +66,14 @@
 ## 2. Tính năng của ứng dụng
 
 * **Hỗ trợ đa định dạng ảnh nhiệt**: Hỗ trợ ảnh 8-bit (PNG/JPG/BMP), ảnh màu (tự chuyển grayscale) và **ảnh nhiệt 16-bit TIFF (`CV_16U`)** với chuẩn hóa min-max không mất dữ liệu dải động cao.
-* **Giao diện Qt 6 tối giản (`apps/MainWindow.ui`)**:
-  - Thiết kế tông tối trung tính dễ quan sát chi tiết ảnh, tách biệt UI XML chuẩn để chỉnh sửa trực quan bằng Qt Designer / Qt Creator.
+* **Bộ nạp Dataset Benchmark hồng ngoại toàn diện (LLVIP, FLIR, MSRS, RoadScene)**:
+  - Tự động nhận diện thư mục dataset trên máy cá nhân (`~/QART_Datasets/raw`, `QART_Datasets/`, hoặc biến môi trường `$IR_DATASET_DIR`).
+  - Hỗ trợ nút **📁 Set Root...** để đổi thư mục dataset sang bất kỳ đường dẫn nào trên máy khác (lưu cấu hình lâu dài qua `QSettings`).
+  - Nút **Open Folder...** cho phép mở thư mục ảnh bất kỳ trên ổ cứng.
+  - Bộ điều hướng ảnh: Nút **◀ Prev** / **Next ▶** hoặc **phím mũi tên Trái / Phải (Left / Right Arrow)** giúp lướt nhanh hàng nghìn ảnh nhiệt thời gian thực.
+* **Giao diện Qt 6 tối giản & Chống bẹp font (`apps/MainWindow.ui`)**:
+  - Thiết kế tông tối trung tính, bọc trong `QScrollArea` cuộn mượt mà trên mọi độ phân giải màn hình.
+  - Khóa `minimumHeight` chống hiện tượng vỡ/cắt chữ trong Qt Creator Designer.
 * **Trực quan hóa 3 Tabs với Zoom/Pan đồng bộ**:
   1. **Before / After Comparison**: So sánh song song ảnh gốc và ảnh tăng cường.
   2. **Algorithm Pipeline (All 6 Stages)**: Quan sát cả 6 tầng trung gian ($I \to I_{base} \to I_{de} \to \text{NLM} \to \text{Dual-}\gamma \to I_{out}$).
@@ -144,35 +150,50 @@ Hoặc chạy trực tiếp file thực thi:
 ```
 
 **Thao tác nhanh trên UI**:
-1. Chọn sẵn cảnh mẫu từ **Preset** (`Scene 1`–`Scene 8`, `Figure 2 - Scene 1/2`) hoặc bấm **Open Custom...** để mở ảnh PNG/JPG/16-bit TIFF bất kỳ.
-2. Chọn **Mode** xử lý (`Symmetric Dual-Gamma`, `Paper Magnitude`, hoặc `Paper Literal Eq. 8`) và kéo các thanh trượt tham số (`r`, `eps`, `h`, `gamma`, `alpha`).
-3. Cuộn chuột để phóng to, kéo chuột trái để di chuyển, **double-click** để khôi phục vừa khung hình.
-4. Bấm **Save Output...** hoặc **Export All Stages...** để lưu ảnh kết quả.
+1. **Chọn Dataset**: Chọn một trong các tập dữ liệu có sẵn (`Paper Samples`, `LLVIP (Test/Train)`, `FLIR`, `MSRS`, `RoadScene`) hoặc bấm **Open Folder...** để mở thư mục bất kỳ.
+2. **Duyệt ảnh**: Dùng nút **◀** / **▶** hoặc nhấn **phím mũi tên Trái / Phải** trên bàn phím để chuyển đổi tức thì giữa hàng ngàn ảnh trong dataset.
+3. **Đổi thư mục Dataset Root**: Bấm icon **📁** bên cạnh ô Dataset để trỏ tới thư mục dữ liệu trên máy tính khác (được lưu vĩnh viễn qua `QSettings`).
+4. **Mở ảnh đơn / Reference**: Bấm **Open File...** hoặc **Load Ref...** để nạp ảnh tùy ý.
+5. **Chọn Mode & Tinh chỉnh**: Chọn `Symmetric Dual-Gamma`, `Paper Magnitude`, hoặc `Paper Literal Eq. 8` và kéo các thanh trượt tham số (`r`, `eps`, `h`, `gamma`, `alpha`).
+6. **Tương tác Canvas**: Cuộn chuột để phóng to, kéo chuột trái để di chuyển, **nhấp đúp chuột trái (double-click)** để khôi phục vừa khung hình.
+7. **Lưu kết quả**: Bấm **Save Output...** hoặc **Export All Stages...** để lưu ảnh kết quả.
 
 ### 5.2. Kiểm thử Dòng lệnh (CLI Benchmark)
 
-`ir_enhance_cli` không phụ thuộc thư viện Qt GUI, có thể chạy trực tiếp trên server/headless:
-```bash
-./build/ir_enhance_cli [--mode symmetric|magnitude|literal] [<input_image> [<ref_image>]]
-```
+`ir_enhance_cli` không phụ thuộc thư viện Qt GUI, có thể chạy trực tiếp trên server/headless với cả ảnh đơn lẫn **đánh giá hàng loạt (Batch Evaluation)**:
 
-Ví dụ chạy Scene 1:
 ```bash
+# Liệt kê các dataset tự động nhận diện được trên máy:
+./build/ir_enhance_cli --list-datasets
+
+# Chạy đánh giá hàng loạt 50 ảnh từ LLVIP Test và xuất báo cáo CSV:
+./build/ir_enhance_cli --dataset llvip_test --limit 50 --out-dir results/llvip_eval
+
+# Chạy trên một thư mục ảnh bất kỳ:
+./build/ir_enhance_cli --dir /path/to/my/infrared_images --limit 100 --out-dir results/custom_eval
+
+# Chạy kiểm thử trên 1 ảnh đơn lẻ (kèm reference nếu có):
 ./build/ir_enhance_cli sample_images/scene_1_original.png sample_images/scene_1_paper_ours.png
 ```
-Kết quả mẫu:
+
+Kết quả mẫu khi chạy đánh giá hàng loạt trên LLVIP:
 ```text
-=== IR Image Detail Enhancement CLI Test ===
-Loaded image: sample_images/scene_1_original.png (109x86)
-Processing finished in: 17.3 ms
+=== IR Image Detail Enhancement CLI Testbed ===
+Running Batch Evaluation on directory: /Users/soncris/QART_Datasets/raw/llvip/infrared/test
+Evaluating 10 images...
+Progress: 10/10 (258.8 ms/img)
+Batch evaluation completed!
 
---- Metrics Comparison ---
-Input  - IE: 6.31469, GE: 6.08355, RMS Contrast: 0.117357
-Output - IE: 6.59618, GE: 6.20676, RMS Contrast: 0.146689
-Vs Input        - RMSE: 0.0427064, PSNR: 27.3901 dB, SSIM: 0.900004
-Vs Paper Target - RMSE: 0.102555, PSNR: 19.7808 dB, SSIM: 0.798845
-
-Saved enhanced output to: results/cli_out.png
+========================================================
+                  BENCHMARK RESULTS
+========================================================
+Total Images Tested : 10
+Average Latency     : 257.3 ms (3.9 FPS)
+Information Entropy : 7.37 -> 7.39 (Δ +0.02)
+Gradient Entropy    : 3.31 -> 3.36 (Δ +0.05)
+RMS Contrast        : 0.201 -> 0.205 (Δ +0.004)
+========================================================
+Report saved to: results/llvip_test_eval/benchmark_report.csv
 ```
 
 ---

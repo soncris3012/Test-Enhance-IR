@@ -113,7 +113,20 @@
                 </size>
                </property>
                <property name="text">
-                <string>Open Custom...</string>
+                <string>Open File...</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnOpenFolder">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Open Folder...</string>
                </property>
               </widget>
              </item>
@@ -133,9 +146,9 @@
             </layout>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="sampleRow">
+            <layout class="QHBoxLayout" name="datasetRow">
              <item>
-              <widget class="QLabel" name="lblPreset">
+              <widget class="QLabel" name="lblDataset">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -143,12 +156,12 @@
                 </size>
                </property>
                <property name="text">
-                <string>Preset:</string>
+                <string>Dataset:</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QComboBox" name="comboSamples">
+              <widget class="QComboBox" name="comboDataset">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -157,14 +170,92 @@
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QPushButton" name="btnSetRoot">
+               <property name="maximumSize">
+                <size>
+                 <width>32</width>
+                 <height>26</height>
+                </size>
+               </property>
+               <property name="toolTip">
+                <string>Change Dataset Root Folder...</string>
+               </property>
+               <property name="text">
+                <string>📁</string>
+               </property>
+              </widget>
+             </item>
             </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="navRow">
+             <item>
+              <widget class="QPushButton" name="btnPrev">
+               <property name="maximumSize">
+                <size>
+                 <width>36</width>
+                 <height>26</height>
+                </size>
+               </property>
+               <property name="toolTip">
+                <string>Previous Image (Left Arrow)</string>
+               </property>
+               <property name="text">
+                <string>◀</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="comboFiles">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>26</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnNext">
+               <property name="maximumSize">
+                <size>
+                 <width>36</width>
+                 <height>26</height>
+                </size>
+               </property>
+               <property name="toolTip">
+                <string>Next Image (Right Arrow)</string>
+               </property>
+               <property name="text">
+                <string>▶</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QLabel" name="lblDatasetStatus">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>16</height>
+              </size>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">color: #888; font-size: 11px;</string>
+             </property>
+             <property name="text">
+              <string>Root: Detecting...</string>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QLabel" name="lblRefStatus">
              <property name="minimumSize">
               <size>
                <width>0</width>
-               <height>18</height>
+               <height>16</height>
               </size>
              </property>
              <property name="styleSheet">

@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QStatusBar>
 #include <QSignalBlocker>
+#include <QSettings>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <array>
@@ -58,7 +59,7 @@ MainWindow::MainWindow(QWidget* parent)
             background-color: #3c3c3c;
             border: 1px solid #606060;
             border-radius: 3px;
-            padding: 5px 12px;
+            padding: 4px 8px;
             font-weight: 600;
         }
         QPushButton:hover { background-color: #484848; border-color: #808080; }
@@ -118,25 +119,38 @@ MainWindow::MainWindow(QWidget* parent)
             font-weight: 600;
         }
         QTabBar::tab:hover:!selected { background: #383838; }
-        QLabel { color: #c0c0c0; }
-        QLabel:disabled { color: #777777; }
-        QStatusBar { background: #222222; color: #999999; }
+        QLabel { color: #cccccc; }
+        QCheckBox { color: #d0d0d0; spacing: 6px; }
+        QCheckBox::indicator {
+            width: 14px;
+            height: 14px;
+            border: 1px solid #606060;
+            border-radius: 2px;
+            background: #252525;
+        }
+        QCheckBox::indicator:checked {
+            background: #4a678f;
+            border-color: #7294c2;
+        }
+        QStatusBar { background-color: #1f1f1f; color: #888888; border-top: 1px solid #333333; }
     )");
 
     // Titles for image canvases
     ui->canvasOriginal->setTitle("Original Infrared Input");
     ui->canvasEnhanced->setTitle("Enhanced Output");
+
     ui->canvasStageInput->setTitle("1. Original Image (I)");
     ui->canvasStageBase->setTitle("2. Base Layer (Guided Filter I_base)");
     ui->canvasStageRawDetail->setTitle("3. Raw Detail Layer (Normalized)");
     ui->canvasStageDenoised->setTitle("4. Denoised Detail (16-bit NLM)");
     ui->canvasStageDualGamma->setTitle("5. Dual-Gamma Detail");
     ui->canvasStageOutput->setTitle("6. Final Output (I_out)");
+
     ui->canvasRefTarget->setTitle("Paper's Result Image");
     ui->canvasRefOurs->setTitle("Our Implementation Result");
     ui->canvasRefDiff->setTitle("Difference Heatmap (|Ours - Paper|)");
 
-    // Populate Pipeline Mode selector
+    // Populate Mode selector
     ui->comboMode->addItem("Symmetric Dual-Gamma (Recommended)",
                            static_cast<int>(ir_enhance::PipelineMode::SymmetricDualGamma));
     ui->comboMode->addItem("Paper Magnitude (Fig 2c / 3c)",
@@ -144,7 +158,7 @@ MainWindow::MainWindow(QWidget* parent)
     ui->comboMode->addItem("Paper Literal Eq. 8 (Original)",
                            static_cast<int>(ir_enhance::PipelineMode::PaperLiteralEq8));
 
-    // Populate Detail Normalization selector (active in PaperLiteralEq8 mode)
+    // Populate Detail Normalization selector
     ui->comboNorm->addItem("Min-Max (Paper Eq)", static_cast<int>(ir_enhance::DetailNormMode::MinMax));
     ui->comboNorm->addItem("Shift (+0.5)", static_cast<int>(ir_enhance::DetailNormMode::Shift05));
     ui->comboNorm->addItem("Symmetric Centered", static_cast<int>(ir_enhance::DetailNormMode::Symmetric));
@@ -154,12 +168,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     setupConnections();
     onModeChanged();
-    populateSampleList();
-
-    // Load initial default sample
-    if (ui->comboSamples->count() > 1) {
-        ui->comboSamples->setCurrentIndex(1);
-    }
+    initializeDatasets();
 }
 
 MainWindow::~MainWindow() = default;
@@ -274,10 +283,17 @@ void MainWindow::setupConnections() {
         }
     });
 
-    // Other inputs
+    // File & Dataset navigation
     connect(ui->btnOpen, &QPushButton::clicked, this, &MainWindow::onOpenImage);
+    connect(ui->btnOpenFolder, &QPushButton::clicked, this, &MainWindow::onOpenFolder);
     connect(ui->btnLoadRef, &QPushButton::clicked, this, &MainWindow::onLoadReference);
-    connect(ui->comboSamples, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onSampleSelected);
+    connect(ui->btnSetRoot, &QPushButton::clicked, this, &MainWindow::onSetDatasetRoot);
+    connect(ui->comboDataset, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onDatasetSelected);
+    connect(ui->comboFiles, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onFileSelected);
+    connect(ui->btnPrev, &QPushButton::clicked, this, &MainWindow::onPrevImage);
+    connect(ui->btnNext, &QPushButton::clicked, this, &MainWindow::onNextImage);
+
+    // Other inputs
     connect(ui->comboMode, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onModeChanged);
     connect(ui->comboNorm, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onParamChanged);
     connect(ui->chkAdaptiveNlm, &QCheckBox::toggled, this, &MainWindow::onParamChanged);
@@ -299,39 +315,104 @@ void MainWindow::setupConnections() {
     }
 }
 
-void MainWindow::populateSampleList() {
-    ui->comboSamples->clear();
-    ui->comboSamples->addItem("-- Select Sample --", "");
+void MainWindow::initializeDatasets() {
+    QSettings settings("DeepMindLab", "InfraredDetailEnhancement");
+    const QString savedRoot = settings.value("datasetRoot").toString();
 
-    QDir dir(m_sampleDir);
-    if (!dir.exists()) return;
+    std::string detected = ir_enhance::DatasetManager::detectDatasetRoot(savedRoot.toStdString());
+    m_datasetRoot = QString::fromStdString(detected);
 
-    for (int i = 1; i <= 8; ++i) {
-        const QString fname = QString("scene_%1_original.png").arg(i);
-        if (dir.exists(fname)) {
-            ui->comboSamples->addItem(QString("Scene %1 (From Paper)").arg(i), dir.absoluteFilePath(fname));
+    refreshDatasets(m_datasetRoot);
+}
+
+void MainWindow::refreshDatasets(const QString& rootPath) {
+    ui->comboDataset->blockSignals(true);
+    ui->comboDataset->clear();
+
+    m_datasets = ir_enhance::DatasetManager::discoverDatasets(rootPath.toStdString(), m_sampleDir.toStdString());
+
+    if (m_datasets.empty()) {
+        ui->comboDataset->addItem("-- No Datasets Detected --", "");
+    } else {
+        for (const auto& entry : m_datasets) {
+            ui->comboDataset->addItem(QString::fromStdString(entry.displayName),
+                                      QString::fromStdString(entry.folderPath));
         }
     }
 
-    if (dir.exists("fig2_scene1_original.png")) {
-        ui->comboSamples->addItem("Figure 2 - Scene 1 (Cars)", dir.absoluteFilePath("fig2_scene1_original.png"));
+    ui->comboDataset->addItem("📂 Browse Custom Folder...", "__BROWSE_FOLDER__");
+
+    if (rootPath.isEmpty()) {
+        ui->lblDatasetStatus->setText("Root: Built-in only (Click 📁 to set root)");
+    } else {
+        QString compact = rootPath;
+        const QString home = QDir::homePath();
+        if (compact.startsWith(home)) {
+            compact.replace(0, home.length(), "~");
+        }
+        ui->lblDatasetStatus->setText("Root: " + compact);
     }
-    if (dir.exists("fig2_scene2_original.png")) {
-        ui->comboSamples->addItem("Figure 2 - Scene 2 (House)", dir.absoluteFilePath("fig2_scene2_original.png"));
+
+    ui->comboDataset->blockSignals(false);
+
+    if (!m_datasets.empty()) {
+        ui->comboDataset->setCurrentIndex(0);
+        loadDataset(0);
     }
 }
 
-void MainWindow::onSampleSelected(int index) {
-    if (index <= 0) return;
-    const QString path = ui->comboSamples->itemData(index).toString();
-    if (path.isEmpty()) return;
+void MainWindow::loadDataset(int datasetIdx) {
+    if (datasetIdx < 0 || datasetIdx >= static_cast<int>(m_datasets.size())) return;
 
-    // Resolve and load matching reference BEFORE loadImage() so metrics/heatmap stay in sync
+    const auto& entry = m_datasets[datasetIdx];
+    m_currentFiles = ir_enhance::DatasetManager::scanImageFiles(entry.folderPath);
+
+    ui->comboFiles->blockSignals(true);
+    ui->comboFiles->clear();
+
+    const int total = static_cast<int>(m_currentFiles.size());
+    if (total == 0) {
+        ui->comboFiles->addItem("No images found", "");
+        ui->btnPrev->setEnabled(false);
+        ui->btnNext->setEnabled(false);
+    } else {
+        for (int i = 0; i < total; ++i) {
+            const QString fname = QFileInfo(QString::fromStdString(m_currentFiles[i])).fileName();
+            ui->comboFiles->addItem(QString("%1 [%2/%3]").arg(fname).arg(i + 1).arg(total),
+                                    QString::fromStdString(m_currentFiles[i]));
+        }
+        ui->btnPrev->setEnabled(false);
+        ui->btnNext->setEnabled(total > 1);
+    }
+
+    ui->comboFiles->blockSignals(false);
+
+    if (total > 0) {
+        onFileSelected(0);
+    }
+}
+
+void MainWindow::onDatasetSelected(int index) {
+    if (index < 0) return;
+    const QString data = ui->comboDataset->itemData(index).toString();
+    if (data == "__BROWSE_FOLDER__") {
+        onOpenFolder();
+        return;
+    }
+    loadDataset(index);
+}
+
+void MainWindow::onFileSelected(int index) {
+    if (index < 0 || index >= static_cast<int>(m_currentFiles.size())) return;
+    m_currentFileIdx = index;
+
+    const QString path = QString::fromStdString(m_currentFiles[index]);
     const QFileInfo fi(path);
-    const QString baseName = fi.baseName();
+
+    // If Paper sample, try auto-loading matched reference
     QString refPath;
-    if (baseName.endsWith("_original")) {
-        QString refName = baseName;
+    if (fi.baseName().endsWith("_original")) {
+        QString refName = fi.baseName();
         refName.replace("_original", "_paper_ours.png");
         const QString candidate = fi.dir().filePath(refName);
         if (QFile::exists(candidate)) {
@@ -340,6 +421,77 @@ void MainWindow::onSampleSelected(int index) {
     }
     loadReference(refPath);
     loadImage(path);
+
+    ui->btnPrev->setEnabled(index > 0);
+    ui->btnNext->setEnabled(index + 1 < static_cast<int>(m_currentFiles.size()));
+}
+
+void MainWindow::onPrevImage() {
+    if (m_currentFileIdx > 0) {
+        ui->comboFiles->setCurrentIndex(m_currentFileIdx - 1);
+    }
+}
+
+void MainWindow::onNextImage() {
+    if (m_currentFileIdx + 1 < static_cast<int>(m_currentFiles.size())) {
+        ui->comboFiles->setCurrentIndex(m_currentFileIdx + 1);
+    }
+}
+
+void MainWindow::keyPressEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_Left) {
+        onPrevImage();
+        event->accept();
+        return;
+    } else if (event->key() == Qt::Key_Right) {
+        onNextImage();
+        event->accept();
+        return;
+    }
+    QMainWindow::keyPressEvent(event);
+}
+
+void MainWindow::onOpenFolder() {
+    const QString dir = QFileDialog::getExistingDirectory(this, "Select Custom Infrared Image Directory",
+                                                          m_datasetRoot.isEmpty() ? m_sampleDir : m_datasetRoot);
+    if (dir.isEmpty()) return;
+
+    auto files = ir_enhance::DatasetManager::scanImageFiles(dir.toStdString());
+    if (files.empty()) {
+        QMessageBox::warning(this, "No Images", "No supported infrared images found in:\n" + dir);
+        return;
+    }
+
+    ir_enhance::DatasetEntry custom;
+    custom.id = "custom_" + QFileInfo(dir).fileName().toStdString();
+    custom.displayName = "Custom: " + QFileInfo(dir).fileName().toStdString() +
+                         " (" + std::to_string(files.size()) + " imgs)";
+    custom.folderPath = dir.toStdString();
+    custom.imageCount = static_cast<int>(files.size());
+
+    m_datasets.push_back(custom);
+    const int newIdx = static_cast<int>(m_datasets.size()) - 1;
+
+    ui->comboDataset->blockSignals(true);
+    // Insert right before "__BROWSE_FOLDER__"
+    ui->comboDataset->insertItem(newIdx, QString::fromStdString(custom.displayName), QString::fromStdString(custom.folderPath));
+    ui->comboDataset->setCurrentIndex(newIdx);
+    ui->comboDataset->blockSignals(false);
+
+    loadDataset(newIdx);
+}
+
+void MainWindow::onSetDatasetRoot() {
+    const QString dir = QFileDialog::getExistingDirectory(this, "Select Dataset Root Directory (e.g. QART_Datasets/raw)",
+                                                          m_datasetRoot.isEmpty() ? QDir::homePath() : m_datasetRoot);
+    if (dir.isEmpty()) return;
+
+    QSettings settings("DeepMindLab", "InfraredDetailEnhancement");
+    settings.setValue("datasetRoot", dir);
+
+    std::string detected = ir_enhance::DatasetManager::detectDatasetRoot(dir.toStdString());
+    m_datasetRoot = QString::fromStdString(detected);
+    refreshDatasets(m_datasetRoot);
 }
 
 void MainWindow::onOpenImage() {
@@ -383,7 +535,7 @@ void MainWindow::loadImage(const QString& path) {
 void MainWindow::loadReference(const QString& path) {
     if (path.isEmpty()) {
         m_refMat = cv::Mat();
-        ui->lblRefStatus->setText("Reference: None");
+        ui->lblRefStatus->setText("Reference: None (Real Dataset)");
         ui->canvasRefTarget->setImage(QImage());
         ui->canvasRefDiff->setImage(QImage());
         return;

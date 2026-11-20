@@ -20,8 +20,10 @@ find_package(OpenCV REQUIRED)
 add_library(ir_enhance_core STATIC
     include/guided_filter.hpp
     include/enhancement_pipeline.hpp
+    include/dataset_manager.hpp
     src/guided_filter.cpp
     src/enhancement_pipeline.cpp
+    src/dataset_manager.cpp
 )
 target_include_directories(ir_enhance_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
