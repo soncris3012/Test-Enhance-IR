@@ -68,13 +68,13 @@
          <x>0</x>
          <y>0</y>
          <width>370</width>
-         <height>920</height>
+         <height>1050</height>
         </rect>
        </property>
        <property name="minimumSize">
         <size>
          <width>350</width>
-         <height>920</height>
+         <height>1050</height>
         </size>
        </property>
        <layout class="QVBoxLayout" name="sideLayout">
@@ -271,6 +271,7 @@
         </item>
         <item>
          <widget class="QGroupBox" name="grpParams">
+          <property name="minimumSize"><size><width>0</width><height>460</height></size></property>
           <property name="title">
            <string>2. Algorithm Parameters (Paper)</string>
           </property>
